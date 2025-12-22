@@ -39,7 +39,7 @@ migratedown:
 
 #Run sqlc
 sqlc:
-	sqlc generate
+	~/go/bin/sqlc generate
 
 #Run test
 test:
