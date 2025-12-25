@@ -10,7 +10,7 @@ MIGRATE_PATH=db/migration
 DB_URL=postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
 
 # Phony targets
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server
 
 # Start Postgres container
 postgres:
@@ -20,6 +20,9 @@ postgres:
 		-e POSTGRES_DB=$(DB_NAME) \
 		-v ~/postgres_data:/var/lib/postgresql/data \
 		-d postgres:12-alpine
+# Start existing Postgres container
+start-postgres:
+	sudo docker start -ai $(DB_CONTAINER)
 
 # Create database (if container already running)
 createdb:
@@ -44,3 +47,7 @@ sqlc:
 #Run test
 test:
 	go test -v -cover ./...
+
+#Run server
+server:
+	go run main.go	

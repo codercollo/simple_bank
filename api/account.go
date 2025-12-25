@@ -1,0 +1,179 @@
+package api
+
+import (
+	"database/sql"
+	"net/http"
+	"strconv"
+
+	db "github.com/codercollo/simple_bank/db/sqlc"
+	"github.com/gin-gonic/gin"
+)
+
+// Request body schema
+type createAccountRequest struct {
+	Owner    string `json:"owner" binding:"required"`
+	Currency string `json:"currency" binding:"required,oneof=USD EUR Ksh"`
+}
+
+// createAccount handles HTTP requests to creare a new bank account
+func (server *Server) createAccount(ctx *gin.Context) {
+	var req createAccountRequest
+
+	//Validate input
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	//Prepare DB params
+	arg := db.CreateAccountParams{
+		Owner:    req.Owner,
+		Currency: req.Currency,
+		Balance:  0,
+	}
+
+	//Execute DB insert
+	account, err := server.store.CreateAccount(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//Success response
+	ctx.JSON(http.StatusOK, account)
+
+}
+
+// Get account request
+type getAccountRequest struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+// getAccount gets account by ID
+func (server *Server) getAccount(ctx *gin.Context) {
+	var req getAccountRequest
+
+	//Bind URI
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	//Get account
+	account, err := server.store.GetAccount(ctx, req.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//Success response
+	ctx.JSON(http.StatusOK, account)
+
+}
+
+// Query params for listing accounts
+type ListAccountRequest struct {
+	PageID   int32 `form:"page_id" binding:"required,min=1"`
+	PageSize int32 `form:"page_size" binding:"required,min=5,max=10"`
+}
+
+// List accounts with pagination
+func (server *Server) listAccount(ctx *gin.Context) {
+	var req ListAccountRequest
+
+	//Bind query
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	//Prepare DB params
+	arg := db.ListAccountsParams{
+		Limit:  req.PageSize,
+		Offset: (req.PageID - 1) * req.PageSize,
+	}
+
+	//Fetch accounts
+	accounts, err := server.store.ListAccounts(ctx, arg)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//Return accounts
+	ctx.JSON(http.StatusOK, accounts)
+}
+
+// Update account request
+type updateAccountRequest struct {
+	Balance int64 `json:"balance" binding:"required"`
+}
+
+// Update account balance
+func (server *Server) updateAccount(ctx *gin.Context) {
+	//Parse account ID from URL
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	//Bind JSON body
+	var req updateAccountRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	//Update account
+	account, err := server.store.UpdateAccount(ctx, db.UpdateAccountParams{
+		ID:      id,
+		Balance: req.Balance,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//Return updated account
+	ctx.JSON(http.StatusOK, account)
+}
+
+// deleteAccount deletes an account
+func (server *Server) deleteAccount(ctx *gin.Context) {
+	//Parse account ID  from URL
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	//Delete account in DB
+	err = server.store.DeleteAccount(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//Success response
+	ctx.JSON(http.StatusOK, gin.H{"mesage": "account deleted"})
+}
