@@ -1,4 +1,4 @@
-# Makefile for simple_bank migrations
+# Makefile for simple_bank migrations (Windows-friendly)
 
 # Variables
 DB_CONTAINER=postgres12
@@ -7,30 +7,34 @@ DB_USER=root
 DB_PASSWORD=secret
 DB_PORT=5433
 MIGRATE_PATH=db/migration
+# Use localhost because Docker for Windows maps ports to host
 DB_URL=postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
+# Update this path to your Windows user directory
+POSTGRES_DATA=/c/Users/itsco/postgres_data
 
 # Phony targets
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server
+.PHONY: postgres start-postgres createdb dropdb migrateup migratedown sqlc test server
 
-# Start Postgres container
+# Start Postgres container (fresh)
 postgres:
-	sudo docker run --name $(DB_CONTAINER) -p $(DB_PORT):5432 \
+	docker run --name $(DB_CONTAINER) -p $(DB_PORT):5432 \
 		-e POSTGRES_USER=$(DB_USER) \
 		-e POSTGRES_PASSWORD=$(DB_PASSWORD) \
 		-e POSTGRES_DB=$(DB_NAME) \
-		-v ~/postgres_data:/var/lib/postgresql/data \
+		-v $(POSTGRES_DATA):/var/lib/postgresql/data \
 		-d postgres:12-alpine
+
 # Start existing Postgres container
 start-postgres:
-	sudo docker start -ai $(DB_CONTAINER)
+	docker start -ai $(DB_CONTAINER)
 
 # Create database (if container already running)
 createdb:
-	sudo docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -c "CREATE DATABASE $(DB_NAME);"
+	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -c "CREATE DATABASE $(DB_NAME);"
 
 # Drop database
 dropdb:
-	sudo docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -c "DROP DATABASE IF EXISTS $(DB_NAME);"
+	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -c "DROP DATABASE IF EXISTS $(DB_NAME);"
 
 # Run migrations up
 migrateup:
@@ -40,14 +44,14 @@ migrateup:
 migratedown:
 	migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" -verbose down
 
-#Run sqlc
+# Run sqlc
 sqlc:
 	~/go/bin/sqlc generate
 
-#Run test
+# Run tests
 test:
 	go test -v -cover ./...
 
-#Run server
+# Run server
 server:
-	go run main.go	
+	go run main.go
