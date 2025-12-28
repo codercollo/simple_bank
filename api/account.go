@@ -120,11 +120,10 @@ type updateAccountRequest struct {
 
 // Update account balance
 func (server *Server) updateAccount(ctx *gin.Context) {
-	//Parse account ID from URL
-	idStr := ctx.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	//Parse and validate account ID
+	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil || id < 1 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
 		return
 	}
 
@@ -156,10 +155,9 @@ func (server *Server) updateAccount(ctx *gin.Context) {
 // deleteAccount deletes an account
 func (server *Server) deleteAccount(ctx *gin.Context) {
 	//Parse account ID  from URL
-	idStr := ctx.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil || id < 1 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
 		return
 	}
 
