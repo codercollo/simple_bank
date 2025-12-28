@@ -12,7 +12,7 @@ import (
 // Request body schema
 type createAccountRequest struct {
 	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,oneof=USD EUR Ksh"`
+	Currency string `json:"currency" binding:"required,currency"`
 }
 
 // createAccount handles HTTP requests to creare a new bank account
