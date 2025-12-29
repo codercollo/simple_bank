@@ -13,7 +13,7 @@ DB_URL=postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslm
 POSTGRES_DATA=/c/Users/itsco/postgres_data
 
 # Phony targets
-.PHONY: postgres start-postgres createdb dropdb migrateup migratedown sqlc test server mock
+.PHONY: postgres start-postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server mock
 
 # Start Postgres container (fresh)
 postgres:
@@ -44,6 +44,14 @@ migrateup:
 migratedown:
 	migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" -verbose down
 
+# Run migration up (one-up only)
+migrateup1:
+	migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" -verbose up 1
+
+# Run migration down (one-down only)
+migratedown1:
+	migrate -path $(MIGRATE_PATH) -database "$(DB_URL)" -verbose down 1
+
 # Run sqlc
 sqlc:
 	sqlc generate
@@ -58,4 +66,4 @@ server:
 
 # Run mock
 mock:
-   mockgen -destination=db/mock/store.go -package=mock github.com/codercollo/simple_bank/db/sqlc Store
+	mockgen -destination=db/mock/store.go -package=mock github.com/codercollo/simple_bank/db/sqlc Store
