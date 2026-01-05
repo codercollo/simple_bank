@@ -14,6 +14,13 @@ var (
 	ErrInvalidToken = errors.New("token has expired")
 )
 
+type TokenType byte
+
+const (
+	TokenTypeAccessToken  = 1
+	TokenTypeRefreshToken = 2
+)
+
 // Payload defines the JWT payload structure
 type Payload struct {
 	ID        uuid.UUID `json:"id"`

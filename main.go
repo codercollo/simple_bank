@@ -25,12 +25,14 @@ func main() {
 
 	//Initialize application dependecies
 	store := db.NewStore(conn)
-	server := api.NewServer(store)
 
-	//Start HTTP server
-	err = server.Start(config.ServerAddress)
+	server, err := api.NewServer(store, config)
 	if err != nil {
-		log.Fatal("cannot start server")
+		log.Fatal("cannot create server:", err)
+
 	}
 
+	if err := server.Start(config.ServerAddress); err != nil {
+		log.Fatal("cannot start server:", err)
+	}
 }

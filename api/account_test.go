@@ -104,7 +104,7 @@ func TestCreateAccountAPI(t *testing.T) {
 			tc.buildStubs(store)
 
 			//Start test server
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			//Encode request body
@@ -216,7 +216,7 @@ func TestGetAccountAPI(t *testing.T) {
 			tc.buildStubs(store)
 
 			//Start test server
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			//Build HTTP request
@@ -311,7 +311,7 @@ func TestLisAccountAPI(t *testing.T) {
 			tc.buildStubs(store)
 
 			//Start test server
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			//Create HTTP request
@@ -462,7 +462,7 @@ func TestUpdateAccountAPI(t *testing.T) {
 			tc.buildStubs(store)
 
 			//Start test server
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			//Encode request body
@@ -569,7 +569,7 @@ func TestDeleteAccountAPI(t *testing.T) {
 			tc.buildStubs(store)
 
 			//Start test server
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			//Create HTTP request
