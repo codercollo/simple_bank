@@ -36,13 +36,13 @@ func TestCreateAccountAPI(t *testing.T) {
 		{
 			name: "OK",
 			body: gin.H{
-				"owner":    account.Owner,
+				// "owner":account.Owner,
 				"currency": account.Currency,
 			},
 			buildStubs: func(store *mock.MockStore) {
 				//Expect account creation with valid params
 				arg := db.CreateAccountParams{
-					Owner:    account.Owner,
+					Owner:    user.Username,
 					Currency: account.Currency,
 					Balance:  0,
 				}
@@ -118,6 +118,10 @@ func TestCreateAccountAPI(t *testing.T) {
 			//Create HTTP request
 			request, err := http.NewRequest(http.MethodPost, "/accounts", bytes.NewReader(data))
 			require.NoError(t, err)
+
+			//Add authorization header
+			tokenMaker := server.tokenMaker
+			addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
 
 			//Send request and verify response
 			server.router.ServeHTTP(recorder, request)
