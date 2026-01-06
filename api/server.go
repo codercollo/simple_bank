@@ -48,24 +48,27 @@ func NewServer(store db.Store, config util.Config) (*Server, error) {
 
 // setupRouter configures all API routes and middleware
 func (server *Server) setupRouter() {
-	///Create Gin router with logger and recovery middleware
+	///Create Gin router
 	router := gin.Default()
 
-	//User routes
+	//Public user routes
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
 
+	//Auth-protected routes
+	authRoutes := router.Group("/").Use(authMiddleware((server.tokenMaker)))
+
 	//Account routes
-	router.POST("/accounts", server.createAccount)
-	router.GET("/accounts/:id", server.getAccount)
-	router.GET("/accounts", server.listAccount)
-	router.PATCH("/accounts/:id", server.updateAccount)
-	router.DELETE("/accounts/:id", server.deleteAccount)
+	authRoutes.POST("/accounts", server.createAccount)
+	authRoutes.GET("/accounts/:id", server.getAccount)
+	authRoutes.GET("/accounts", server.listAccount)
+	// authRoutes.PATCH("/accounts/:id", server.updateAccount)
+	// authRoutes.DELETE("/accounts/:id", server.deleteAccount)
 
 	//Transfer routes
-	router.POST("/transfers", server.createTransfer)
+	authRoutes.POST("/transfers", server.createTransfer)
 
-	//Assign touter to server
+	//Assign router to server
 	server.router = router
 
 }
