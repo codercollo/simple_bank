@@ -11,21 +11,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// newTestServer creates a test server with mock store and config
 func newTestServer(t *testing.T, store db.Store) *Server {
+	//Test configuration
 	config := util.Config{
 		TokenSymmetricKey:   util.RandomString(32),
 		AccessTokenDuration: time.Minute,
 	}
 
-	server, err := NewServer(config, store)
+	//Initialize server
+	server, err := NewServer(store, config)
 	require.NoError(t, err)
-
 	return server
 
 }
 
+// TestMain sets up global test configuration
 func TestMain(m *testing.M) {
 
+	//Use Gin test mode
 	gin.SetMode(gin.TestMode)
 
 	//Run tests

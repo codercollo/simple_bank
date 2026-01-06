@@ -2,17 +2,17 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
-	"strconv"
 
 	db "github.com/codercollo/simple_bank/db/sqlc"
+	"github.com/codercollo/simple_bank/token"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 )
 
-// Request body schema
+// Request body for account creation
 type createAccountRequest struct {
-	Owner    string `json:"owner" binding:"required"`
 	Currency string `json:"currency" binding:"required,currency"`
 }
 
@@ -26,16 +26,20 @@ func (server *Server) createAccount(ctx *gin.Context) {
 		return
 	}
 
+	//Get authenticated user
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
 	//Prepare DB params
 	arg := db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Currency: req.Currency,
 		Balance:  0,
 	}
 
-	//Execute DB insert
+	//Execute DB insert account
 	account, err := server.store.CreateAccount(ctx, arg)
 	if err != nil {
+		//Handle constraint violations
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code.Name() {
 			case "foreign_key_violation", "unique_violation":
@@ -52,7 +56,7 @@ func (server *Server) createAccount(ctx *gin.Context) {
 
 }
 
-// Get account request
+// URI params for get account
 type getAccountRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
@@ -61,7 +65,7 @@ type getAccountRequest struct {
 func (server *Server) getAccount(ctx *gin.Context) {
 	var req getAccountRequest
 
-	//Bind URI
+	//Bind URI params
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -76,6 +80,14 @@ func (server *Server) getAccount(ctx *gin.Context) {
 		}
 
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//Check ownership
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err := errors.New("account doesn't belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 
@@ -94,14 +106,18 @@ type ListAccountRequest struct {
 func (server *Server) listAccount(ctx *gin.Context) {
 	var req ListAccountRequest
 
-	//Bind query
+	//Bind query params
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
+	//Get authenticated user
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
 	//Prepare DB params
 	arg := db.ListAccountsParams{
+		Owner:  authPayload.Username,
 		Limit:  req.PageSize,
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
@@ -121,65 +137,65 @@ func (server *Server) listAccount(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, accounts)
 }
 
-// Update account request
-type updateAccountRequest struct {
-	Balance int64 `json:"balance" binding:"required"`
-}
+// // Update account request
+// type updateAccountRequest struct {
+// 	Balance int64 `json:"balance" binding:"required"`
+// }
 
-// Update account balance
-func (server *Server) updateAccount(ctx *gin.Context) {
-	//Parse and validate account ID
-	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
-	if err != nil || id < 1 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
-		return
-	}
+// // Update account balance
+// func (server *Server) updateAccount(ctx *gin.Context) {
+// 	//Parse and validate account ID
+// 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+// 	if err != nil || id < 1 {
+// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
+// 		return
+// 	}
 
-	//Bind JSON body
-	var req updateAccountRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
+// 	//Bind JSON body
+// 	var req updateAccountRequest
+// 	if err := ctx.ShouldBindJSON(&req); err != nil {
+// 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+// 		return
+// 	}
 
-	//Update account
-	account, err := server.store.UpdateAccount(ctx, db.UpdateAccountParams{
-		ID:      id,
-		Balance: req.Balance,
-	})
-	if err != nil {
-		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
+// 	//Update account
+// 	account, err := server.store.UpdateAccount(ctx, db.UpdateAccountParams{
+// 		ID:      id,
+// 		Balance: req.Balance,
+// 	})
+// 	if err != nil {
+// 		if err == sql.ErrNoRows {
+// 			ctx.JSON(http.StatusNotFound, errorResponse(err))
+// 			return
+// 		}
+// 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+// 		return
+// 	}
 
-	//Return updated account
-	ctx.JSON(http.StatusOK, account)
-}
+// 	//Return updated account
+// 	ctx.JSON(http.StatusOK, account)
+// }
 
-// deleteAccount deletes an account
-func (server *Server) deleteAccount(ctx *gin.Context) {
-	//Parse account ID  from URL
-	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
-	if err != nil || id < 1 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
-		return
-	}
+// // deleteAccount deletes an account
+// func (server *Server) deleteAccount(ctx *gin.Context) {
+// 	//Parse account ID  from URL
+// 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+// 	if err != nil || id < 1 {
+// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
+// 		return
+// 	}
 
-	//Delete account in DB
-	err = server.store.DeleteAccount(ctx, id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
+// 	//Delete account in DB
+// 	err = server.store.DeleteAccount(ctx, id)
+// 	if err != nil {
+// 		if err == sql.ErrNoRows {
+// 			ctx.JSON(http.StatusNotFound, errorResponse(err))
+// 			return
+// 		}
+// 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+// 		return
+// 	}
 
-	//Success response
-	ctx.JSON(http.StatusOK, gin.H{"mesage": "account deleted"})
-}
+// 	//Success response
+// 	ctx.JSON(http.StatusOK, gin.H{"mesage": "account deleted"})
+// }
