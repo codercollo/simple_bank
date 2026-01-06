@@ -17,7 +17,9 @@ POSTGRES_DATA=/c/Users/itsco/postgres_data
 
 # Start Postgres container (fresh)
 postgres:
-	docker run --name $(DB_CONTAINER) -p $(DB_PORT):5432 \
+	docker run --name $(DB_CONTAINER)
+	    --network bank-network
+	    -p $(DB_PORT):5432 \
 		-e POSTGRES_USER=$(DB_USER) \
 		-e POSTGRES_PASSWORD=$(DB_PASSWORD) \
 		-e POSTGRES_DB=$(DB_NAME) \
