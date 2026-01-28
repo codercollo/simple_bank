@@ -26,18 +26,19 @@ func NewJWTMaker(secretKey string) (Maker, error) {
 }
 
 // CreateToken generates a signed JWT for a given username and duraion
-func (maker *JWTMaker) CreateToken(username string, duration time.Duration) (string, error) {
+func (maker *JWTMaker) CreateToken(username string, duration time.Duration) (string, *Payload, error) {
 	//Create token payload with expiration
 	payload, err := NewPayload(username, duration)
 	if err != nil {
-		return "", err
+		return "", payload, err
 	}
 
 	//Create JWT with HMAC-SHA265 signing method
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 
 	//Sign token using secret key
-	return jwtToken.SignedString([]byte(maker.secretKey))
+	token, err := jwtToken.SignedString([]byte(maker.secretKey))
+	return token, payload, err
 
 }
 
