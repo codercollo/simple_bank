@@ -1,14 +1,12 @@
-#version: '3.9'
-
 services:
   postgres:
-    image: postgres:12-alpine
+    image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=simple_bank
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: simple_bank
     ports:
-      - "5433:5432"  
+      - "5433:5432"
 
   api:
     build:
@@ -17,8 +15,16 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DB_SOURCE=postgresql://root:secret@postgres:5432/simple_bank?sslmode=disable
+      DB_SOURCE: postgresql://root:secret@postgres:5432/simple_bank?sslmode=disable
     depends_on:
       - postgres
-    entrypoint: [ "/app/wait-for.sh", "postgres:5432", "--", "/app/start.sh"]
-    command: ["/app/main"]
+    entrypoint:
+      [
+        "/app/wait-for.sh",
+        "postgres:5432",
+        "-t",
+        "60",
+        "--",
+        "/app/start.sh",
+        "/app/main"
+      ]

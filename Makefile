@@ -17,14 +17,14 @@ POSTGRES_DATA=/c/Users/itsco/postgres_data
 
 # Start Postgres container (fresh)
 postgres:
-	docker run --name $(DB_CONTAINER)
-	    --network bank-network
+	docker run --name $(DB_CONTAINER) \
+	    --network bank-network \
 	    -p $(DB_PORT):5432 \
-		-e POSTGRES_USER=$(DB_USER) \
-		-e POSTGRES_PASSWORD=$(DB_PASSWORD) \
-		-e POSTGRES_DB=$(DB_NAME) \
-		-v $(POSTGRES_DATA):/var/lib/postgresql/data \
-		-d postgres:12-alpine
+	    -e POSTGRES_USER=$(DB_USER) \
+	    -e POSTGRES_PASSWORD=$(DB_PASSWORD) \
+	    -e POSTGRES_DB=$(DB_NAME) \
+	    -v $(POSTGRES_DATA):/var/lib/postgresql/data \
+	    -d postgres:15-alpine
 
 # Start existing Postgres container
 start-postgres:
